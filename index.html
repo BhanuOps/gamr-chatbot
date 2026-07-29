@@ -161,10 +161,11 @@ function ask(text) {
 
 function renderMarkdown(text) {
   // Escape HTML first to avoid injection
-  let safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let safe = text.replace(/\r\n/g, '\n');
+  safe = safe.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Tables (simple pipe-delimited markdown tables)
-  const tableRegex = /(\|.+\|\n)(\|[\s:-]+\|\n)((\|.+\|\n?)+)/g;
+  const tableRegex = /(\|.+\|\n)(\|(?:\s*:?-+:?\s*\|)+\n)((?:\|.+\|\n?)+)/g;
   safe = safe.replace(tableRegex, (match, header, sep, body) => {
     const headerCells = header.trim().slice(1, -1).split('|').map(c => c.trim());
     const rows = body.trim().split('\n').map(r => r.trim().slice(1, -1).split('|').map(c => c.trim()));
