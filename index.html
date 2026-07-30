@@ -87,6 +87,13 @@
     cursor: pointer; font-weight: 600;
   }
   .quick button:hover { background: var(--volt); border-color: var(--volt); }
+  .quick-replies { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 20px 14px; }
+  .quick-replies button {
+    font-size: 12.5px; padding: 8px 13px; border-radius: 20px;
+    border: 1.5px solid var(--ink); background: #fff; color: var(--ink);
+    cursor: pointer; font-weight: 700;
+  }
+  .quick-replies button:hover { background: var(--volt); border-color: var(--volt); }
   .composer {
     display: flex; gap: 8px; padding: 16px 18px 18px;
     border-top: 1px solid #d8dcc9; background: var(--paper);
@@ -119,6 +126,7 @@
   .msg.bot h4 { font-size: 14.5px; }
   .msg.bot ol { margin: 6px 0; padding-left: 18px; }
   .msg.bot a { color: #5a7d1e; font-weight: 600; }
+  .msg.bot em { font-style: italic; }
 </style>
 </head>
 <body>
@@ -192,6 +200,9 @@ function renderMarkdown(text) {
   // Bold
   safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
+  // Italics (single asterisk or underscore, but not already-converted bold tags)
+  safe = safe.replace(/\*(?!\*)([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+
   // Numbered lists (1. 2. 3. ...)
   safe = safe.replace(/(^|\n)\d+\. (.+)/g, '$1<li>$2</li>');
   safe = safe.replace(/(<li>.*<\/li>\n?)+/g, (m) => {
@@ -215,6 +226,14 @@ function renderMarkdown(text) {
 }
 
 function addMessage(text, role) {
+  // Pull out a trailing QUICK_REPLIES line, if the bot included one
+  let quickReplies = null;
+  const qrMatch = text.match(/\n?QUICK_REPLIES:\s*(.+)\s*$/i);
+  if (qrMatch && role === 'bot') {
+    quickReplies = qrMatch[1].split('|').map(s => s.trim()).filter(Boolean);
+    text = text.slice(0, qrMatch.index);
+  }
+
   const div = document.createElement('div');
   div.className = 'msg ' + role;
   if (role === 'bot') {
@@ -223,6 +242,22 @@ function addMessage(text, role) {
     div.textContent = text;
   }
   document.getElementById('messages').appendChild(div);
+
+  if (quickReplies && quickReplies.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'quick-replies';
+    quickReplies.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.onclick = () => {
+        wrap.remove();
+        ask(opt);
+      };
+      wrap.appendChild(btn);
+    });
+    document.getElementById('messages').appendChild(wrap);
+  }
+
   document.getElementById('messages').scrollTop = 999999;
   return div;
 }
